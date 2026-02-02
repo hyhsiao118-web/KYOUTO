@@ -1,391 +1,385 @@
-import React, { useState } from 'react';
-import { 
-  Calendar, 
-  MapPin, 
-  ShoppingBag, 
-  Train, 
-  Info, 
-  CheckCircle2, 
-  Plus, 
-  Trash2, 
-  Bike, 
-  CloudSnow, 
-  Coffee,
-  ExternalLink,
-  Copy,
-  Check
-} from 'lucide-react';
-
-const App = () => {
-  const [activeDay, setActiveDay] = useState(1);
-  const [customItems, setCustomItems] = useState({});
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newItem, setNewItem] = useState({ title: '', time: '' });
-  const [copied, setCopied] = useState(false);
-
-  // 初始行程數據
-  const initialData = {
-    1: {
-      date: '2/8 (日)',
-      title: '抵達京都：京都車站大解鎖',
-      schedule: [
-        { time: '08:05', activity: '桃園機場起飛 (CI156)', note: '5:00 派車出發' },
-        { time: '11:35', activity: '抵達關西機場 T1', note: '往 C 出口搭利木津巴士' },
-        { time: '14:00', activity: '京都車站用餐', note: '推薦拉麵小路' },
-        { time: '15:00', activity: '素居旅舍 Check-in', note: '距離清水寺步行10分' },
-      ],
-      shopping: [
-        { name: 'Porta 地下街', desc: '日系服飾與流行雜貨' },
-        { name: 'Bic Camera', desc: '大型電器、吹風機、相機' },
-        { name: 'JR 京都伊勢丹', desc: '專櫃化妝品與精品' }
-      ],
-      tips: '京都車站轉乘複雜，先存好車站地圖。'
-    },
-    2: {
-      date: '2/9 (一)',
-      title: '古意漫步：伏見與宇治',
-      schedule: [
-        { time: '09:00', activity: '伏見桃山老街', note: '酒藏巡禮' },
-        { time: '11:00', activity: '伏見十石舟', note: '需提前確認班次' },
-        { time: '13:00', activity: '搭車前往宇治', note: '京阪電車約20分' },
-        { time: '14:00', activity: '平等院 & 抹茶體驗', note: '鳳凰堂必看' },
-      ],
-      shopping: [
-        { name: '中村藤吉本店', desc: '宇治抹茶點心伴手禮' },
-        { name: '伏見酒藏', desc: '特色清酒地酒' }
-      ],
-      tips: '伏見到宇治很近，適合排在同一天。'
-    },
-    3: {
-      date: '2/10 (二)',
-      title: '京都市區：單車或步行',
-      schedule: [
-        { time: '09:30', activity: '取 e-Bike / 清水寺', note: '早起避開人潮' },
-        { time: '11:00', activity: '八坂神社 & 祇園', note: '花見小路散步' },
-        { time: '13:00', activity: '鴨川河岸騎行', note: '享受平坦河岸風光' },
-        { time: '17:00', activity: '河原町還車/晚餐', note: '不夜騎更安全' },
-      ],
-      shopping: [
-        { name: 'SOU・SOU', desc: '京都質感印花雜貨' },
-        { name: 'Nintendo KYOTO', desc: '任天堂專賣店 (高島屋S.C.)' },
-        { name: '新京極商店街', desc: '藥妝、古著、ABC-MART' }
-      ],
-      tips: '2月騎車風大，務必戴上手套防寒。'
-    },
-    4: {
-      date: '2/11 (三)',
-      title: '深山祕境：美山茅葺之里',
-      schedule: [
-        { time: '08:30', activity: '京都租車出發', note: '確認配備雪胎' },
-        { time: '11:00', activity: '抵達美山町', note: '參觀民俗資料館' },
-        { time: '15:00', activity: '民宿 Check-in', note: '體驗鄉間寧靜' },
-      ],
-      shopping: [
-        { name: '美山牛奶', desc: '超濃郁乳製品、布丁' },
-        { name: '美山特產店', desc: '在地工藝品、手工果醬' }
-      ],
-      tips: '山區路面易結冰，開車須保持安全距離。'
-    },
-    5: {
-      date: '2/12 (四)',
-      title: '嵐山風光 & 移師大阪',
-      schedule: [
-        { time: '10:00', activity: '嵐山渡月橋', note: '竹林小徑拍照' },
-        { time: '15:00', activity: '歸還車輛', note: '京都車站周邊還車' },
-        { time: '18:00', activity: '移動至大阪', note: '建議搭乘 JR 新快速' },
-      ],
-      shopping: [
-        { name: '嵐山商店街', desc: '特色工藝品、扇子' },
-        { name: '梅田 LUCUA', desc: '大阪流行服飾大本營' }
-      ],
-      tips: '移動到大阪後，大件行李可先放飯店。'
-    },
-    6: {
-      date: '2/13 (五)',
-      title: '壯麗國寶：姬路城一日遊',
-      schedule: [
-        { time: '08:00', activity: '新大阪站出發', note: '搭乘新幹線最快' },
-        { time: '09:30', activity: '參觀姬路城', note: '登上天守閣俯瞰' },
-        { time: '13:00', activity: '好古園', note: '買聯票更划算' },
-        { time: '18:00', activity: '心齋橋逛街', note: '感受大阪夜生活' },
-      ],
-      shopping: [
-        { name: 'piole 姬路', desc: '姬路站旁購物中心' },
-        { name: '心齋橋筋', desc: '藥妝掃貨、百貨 PARCO' },
-        { name: '大國藥妝', desc: '價格競爭力強' }
-      ],
-      tips: '建議購買 JR 西日本一日券，省下新幹線旅費。'
-    },
-    7: {
-      date: '2/14 (六)',
-      title: '最後衝刺 & 歸途',
-      schedule: [
-        { time: '10:00', activity: '往機場移動', note: '行李寄放 Rinku Town' },
-        { time: '12:00', activity: 'Rinku Outlet', note: '最後採買戰場' },
-        { time: '17:00', activity: '辦理登機', note: 'T1 航廈' },
-        { time: '19:00', activity: '飛機起飛 (CI173)', note: '返回溫暖的家' },
-      ],
-      shopping: [
-        { name: 'Rinku Premium Outlets', desc: '國際品牌最後折扣' },
-        { name: '機場免稅店', desc: '白色戀人、Royce巧克力' }
-      ],
-      tips: 'Outlet 較大，建議先鎖定 2-3 個想看的品牌。'
-    }
-  };
-
-  const copyItineraryToClipboard = () => {
-    let text = "🌟 京都・大阪冬日旅行程總覽 🌟\n\n";
-    Object.keys(initialData).forEach(day => {
-      const d = initialData[day];
-      text += `📅 Day ${day} - ${d.date}\n📍 ${d.title}\n`;
-      d.schedule.forEach(s => {
-        text += `  ⏰ ${s.time} ${s.activity} (${s.note})\n`;
-      });
-      text += `🛍️ 推薦逛街: ${d.shopping.map(s => s.name).join(', ')}\n\n`;
-    });
-
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-    document.body.appendChild(textArea);
-    textArea.select();
-    try {
-      document.execCommand('copy');
-      setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
-    } catch (err) {
-      console.error('無法複製文字', err);
-    }
-    document.body.removeChild(textArea);
-  };
-
-  const handleAddItem = (e) => {
-    e.preventDefault();
-    if (!newItem.title) return;
-    const currentCustom = customItems[activeDay] || [];
-    setCustomItems({
-      ...customItems,
-      [activeDay]: [...currentCustom, { ...newItem, id: Date.now() }]
-    });
-    setNewItem({ title: '', time: '' });
-    setShowAddModal(false);
-  };
-
-  const deleteItem = (dayId, itemId) => {
-    setCustomItems({
-      ...customItems,
-      [dayId]: customItems[dayId].filter(item => item.id !== itemId)
-    });
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
-      {/* Header */}
-      <header className="bg-indigo-900 text-white p-6 shadow-lg sticky top-0 z-20">
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-              <MapPin className="text-red-400" /> 京都・大阪冬日旅
-            </h1>
-            <p className="text-indigo-200 text-xs md:text-sm mt-1">2026.02.08 - 02.14 | 與媽媽的漫旅</p>
-          </div>
-          <button 
-            onClick={copyItineraryToClipboard}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-bold ${
-              copied ? 'bg-emerald-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
-            }`}
-          >
-            {copied ? <Check size={16} /> : <Copy size={16} />}
-            {copied ? '已複製到剪貼簿' : '複製文字行程'}
-          </button>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>京都・大阪冬日旅 - 行程攻略</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React, ReactDOM, Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Core -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            margin: 0;
+            padding: 0;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* 漸變裝飾 */
+        .bg-gradient-header {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+        }
+        /* 載入動畫 */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4f46e5;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div id="root">
+        <!-- 初始載入顯示，防止白屏 -->
+        <div class="flex flex-col items-center justify-center min-h-screen">
+            <div class="loader mb-4"></div>
+            <p class="text-slate-500 font-medium">正在準備您的旅遊地圖...</p>
         </div>
-      </header>
-
-      {/* Day Selector */}
-      <div className="bg-white border-b sticky top-[80px] md:top-[88px] z-10 overflow-x-auto no-scrollbar">
-        <div className="max-w-4xl mx-auto flex px-2 md:px-4">
-          {[1, 2, 3, 4, 5, 6, 7].map((day) => (
-            <button
-              key={day}
-              onClick={() => setActiveDay(day)}
-              className={`flex-none px-4 md:px-6 py-4 text-sm font-bold transition-all border-b-2 ${
-                activeDay === day 
-                ? 'border-indigo-600 text-indigo-600' 
-                : 'border-transparent text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              Day {day}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <main className="flex-1 max-w-4xl mx-auto w-full p-4 md:p-6 pb-24">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Main Itinerary */}
-          <div className="lg:col-span-2 space-y-6">
-            <section className="bg-white rounded-2xl shadow-sm p-5 md:p-6 border border-slate-200">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <span className="text-indigo-600 font-bold text-xs uppercase tracking-wider">{initialData[activeDay].date}</span>
-                  <h2 className="text-xl md:text-2xl font-bold mt-1">{initialData[activeDay].title}</h2>
-                </div>
-                <button 
-                  onClick={() => setShowAddModal(true)}
-                  className="bg-indigo-50 text-indigo-600 p-2 rounded-full hover:bg-indigo-100 transition-colors"
-                >
-                  <Plus size={20} />
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                {initialData[activeDay].schedule.map((item, index) => (
-                  <div key={index} className="flex gap-3 md:gap-4 relative">
-                    {index !== initialData[activeDay].schedule.length - 1 && (
-                      <div className="absolute left-[7px] top-6 w-0.5 h-full bg-slate-100"></div>
-                    )}
-                    <div className="w-4 h-4 rounded-full bg-indigo-500 mt-1.5 z-10 shadow-[0_0_0_4px_rgba(99,102,241,0.1)]"></div>
-                    <div className="flex-1 pb-4">
-                      <div className="flex flex-col md:flex-row md:justify-between md:items-baseline">
-                        <span className="text-xs font-bold text-slate-400 mb-1 md:mb-0 md:w-16">{item.time}</span>
-                        <h3 className="text-base md:text-lg font-bold flex-1">{item.activity}</h3>
-                      </div>
-                      <div className="mt-2 md:ml-16">
-                        <span className="text-slate-600 text-xs md:text-sm bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 inline-block">
-                          {item.note}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Custom Items */}
-                {customItems[activeDay]?.map((item) => (
-                  <div key={item.id} className="flex gap-4 relative group">
-                    <div className="w-4 h-4 rounded-full bg-emerald-500 mt-1.5 z-10 shadow-[0_0_0_4px_rgba(16,185,129,0.1)]"></div>
-                    <div className="flex-1 pb-4">
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-xs font-bold text-emerald-600 w-16">{item.time || '加行程'}</span>
-                        <h3 className="text-base md:text-lg font-bold flex-1 text-emerald-800">{item.title}</h3>
-                        <button 
-                          onClick={() => deleteItem(activeDay, item.id)}
-                          className="text-slate-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Preparation Tips */}
-            <section className="bg-amber-50 rounded-2xl p-5 border border-amber-100 flex gap-4">
-              <div className="bg-amber-100 p-3 rounded-xl h-fit">
-                <Info className="text-amber-600" size={20} />
-              </div>
-              <div>
-                <h4 className="font-bold text-amber-900 text-sm md:text-base">小提醒</h4>
-                <p className="text-amber-800 text-xs md:text-sm mt-1 leading-relaxed">{initialData[activeDay].tips}</p>
-              </div>
-            </section>
-          </div>
-
-          {/* Shopping Sidebar */}
-          <div className="space-y-6">
-            <section className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
-              <div className="flex items-center gap-2 mb-4">
-                <ShoppingBag className="text-rose-500" />
-                <h3 className="font-bold text-lg">今日推薦逛街</h3>
-              </div>
-              <div className="space-y-3">
-                {initialData[activeDay].shopping.map((shop, index) => (
-                  <div key={index} className="p-4 rounded-xl border border-slate-100 hover:bg-rose-50 hover:border-rose-100 transition-all cursor-default group">
-                    <div className="font-bold text-slate-800 text-sm group-hover:text-rose-700">{shop.name}</div>
-                    <div className="text-[11px] text-slate-500 mt-1">{shop.desc}</div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Status Card */}
-            <section className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
-               <h3 className="font-bold text-sm text-slate-400 uppercase tracking-widest mb-4">旅行必備狀態</h3>
-               <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-3 bg-blue-50 rounded-xl">
-                    <CloudSnow className="mx-auto mb-1 text-blue-500" size={20} />
-                    <div className="text-[10px] text-blue-600 font-bold">預報氣溫</div>
-                    <div className="font-bold text-blue-800">2° - 9°C</div>
-                  </div>
-                  <div className="text-center p-3 bg-orange-50 rounded-xl">
-                    <Coffee className="mx-auto mb-1 text-orange-500" size={20} />
-                    <div className="text-[10px] text-orange-600 font-bold">熱飲推薦</div>
-                    <div className="font-bold text-orange-800">宇治抹茶</div>
-                  </div>
-               </div>
-            </section>
-          </div>
-        </div>
-      </main>
-
-      {/* Add Item Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-            <div className="p-6">
-              <h3 className="text-xl font-bold mb-4">新增行程紀錄</h3>
-              <form onSubmit={handleAddItem} className="space-y-4">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">抵達時間</label>
-                  <input 
-                    type="text" 
-                    value={newItem.time}
-                    onChange={(e) => setNewItem({...newItem, time: e.target.value})}
-                    placeholder="例如 14:30"
-                    className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">活動內容</label>
-                  <input 
-                    type="text" 
-                    value={newItem.title}
-                    onChange={(e) => setNewItem({...newItem, title: e.target.value})}
-                    placeholder="例如：錦市場吃午餐"
-                    className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    autoFocus
-                  />
-                </div>
-                <div className="flex gap-3 pt-4">
-                  <button 
-                    type="button"
-                    onClick={() => setShowAddModal(false)}
-                    className="flex-1 px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
-                  >
-                    取消
-                  </button>
-                  <button 
-                    type="submit"
-                    className="flex-1 px-4 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
-                  >
-                    確定新增
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Toast Notification for Copying */}
-      {copied && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-emerald-600 text-white px-6 py-3 rounded-full shadow-2xl z-50 animate-bounce font-bold text-sm">
-          ✓ 行程文字已成功複製！
-        </div>
-      )}
     </div>
-  );
-};
 
-export default App;
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        /**
+         * 健全的 Icon 元件
+         */
+        const Icon = ({ name, size = 20, className = "" }) => {
+            const iconRef = useRef(null);
+            
+            useEffect(() => {
+                const renderIcon = () => {
+                    if (iconRef.current && window.lucide) {
+                        iconRef.current.innerHTML = '';
+                        const iconData = window.lucide.icons[name];
+                        if (iconData) {
+                            const svg = iconData.toSvg({
+                                width: size,
+                                height: size,
+                                class: className,
+                                'stroke-width': 2
+                            });
+                            iconRef.current.innerHTML = svg;
+                        } else {
+                            // 找不到圖示時的備案
+                            iconRef.current.innerHTML = `<span style="font-size: ${size}px">📍</span>`;
+                        }
+                    }
+                };
+
+                // 確保 lucide 已載入，如果沒載入就稍後重試
+                if (window.lucide) {
+                    renderIcon();
+                } else {
+                    const timer = setInterval(() => {
+                        if (window.lucide) {
+                            renderIcon();
+                            clearInterval(timer);
+                        }
+                    }, 100);
+                }
+            }, [name, size, className]);
+
+            return <span ref={iconRef} className="inline-flex items-center justify-center leading-none"></span>;
+        };
+
+        const App = () => {
+            const [activeDay, setActiveDay] = useState(1);
+            const [customItems, setCustomItems] = useState({});
+            const [showAddModal, setShowAddModal] = useState(false);
+            const [newItem, setNewItem] = useState({ title: '', time: '' });
+            const [copied, setCopied] = useState(false);
+
+            const initialData = {
+                1: {
+                    date: '2/8 (日)', title: '抵達京都：京都車站',
+                    img: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&q=80&w=800',
+                    schedule: [
+                        { time: '08:05', activity: '桃園機場起飛 (CI156)', note: '5:00 派車出發' },
+                        { time: '11:35', activity: '抵達關西機場 T1', note: '往 C 出口搭利木津巴士' },
+                        { time: '14:00', activity: '京都車站用餐', note: '推薦拉麵小路' },
+                        { time: '15:00', activity: '素居旅舍 Check-in', note: '近清水寺' },
+                    ],
+                    shopping: [
+                        { name: 'Porta 地下街', desc: '流行雜貨' },
+                        { name: 'Bic Camera', desc: '電器大採購' }
+                    ],
+                    tips: '京都車站內先填飽肚子再出發。'
+                },
+                2: {
+                    date: '2/9 (一)', title: '古意漫步：伏見與宇治',
+                    img: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&q=80&w=800',
+                    schedule: [
+                        { time: '09:00', activity: '伏見桃山老街', note: '酒藏巡禮' },
+                        { time: '11:00', activity: '伏見十石舟', note: '搭船散策' },
+                        { time: '14:00', activity: '宇治平等院', note: '抹茶之鄉' },
+                    ],
+                    shopping: [
+                        { name: '中村藤吉本店', desc: '必買抹茶伴手禮' }
+                    ],
+                    tips: '伏見到宇治轉車只要20分鐘，非常順。'
+                },
+                3: {
+                    date: '2/10 (二)', title: '京都市區：e-Bike 單車遊',
+                    img: 'https://images.unsplash.com/photo-1545569341-9eb8b30979d9?auto=format&fit=crop&q=80&w=800',
+                    schedule: [
+                        { time: '09:30', activity: '取車：清水寺附近', note: '確認電量與座椅' },
+                        { time: '11:00', activity: '八坂神社 & 祇園', note: '古街慢騎' },
+                        { time: '14:00', activity: '鴨川平坦河岸', note: '最舒服的一段' },
+                        { time: '17:30', activity: '河原町還車', note: '還車後逛街吃晚餐' },
+                    ],
+                    shopping: [
+                        { name: 'SOU・SOU', desc: '京都質感織物' },
+                        { name: '新京極商店街', desc: '藥妝掃貨區' }
+                    ],
+                    tips: '老街跟神社內請記得下車牽車喔！'
+                },
+                4: {
+                    date: '2/11 (三)', title: '深山祕境：美山合掌村',
+                    img: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?auto=format&fit=crop&q=80&w=800',
+                    schedule: [
+                        { time: '08:30', activity: '租車出發', note: '自駕前往美山' },
+                        { time: '12:00', activity: '美山茅葺之里', note: '雪季非常美' },
+                    ],
+                    shopping: [
+                        { name: '美山牛乳店', desc: '濃郁布丁與霜淇淋' }
+                    ],
+                    tips: '山區冷度加倍，暖暖包跟防滑鞋必備。'
+                },
+                5: {
+                    date: '2/12 (四)', title: '嵐山風情 & 前往大阪',
+                    img: 'https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?auto=format&fit=crop&q=80&w=800',
+                    schedule: [
+                        { time: '10:00', activity: '嵐山渡月橋', note: '竹林小徑拍照' },
+                        { time: '16:00', activity: '還車 & 移動', note: '搭車前往大阪' },
+                    ],
+                    shopping: [
+                        { name: '梅田 LUCUA', desc: '大阪年輕女性最愛' }
+                    ],
+                    tips: '移動日行李較多，建議搭乘計程車接駁至車站。'
+                },
+                6: {
+                    date: '2/13 (五)', title: '壯麗國寶：姬路城',
+                    img: 'https://images.unsplash.com/photo-1590235222399-59755f4171c0?auto=format&fit=crop&q=80&w=800',
+                    schedule: [
+                        { time: '08:30', activity: '新幹線出發', note: '快速抵達姬路' },
+                        { time: '10:00', activity: '參觀姬路城', note: '日本第一名城' },
+                        { time: '18:00', activity: '心齋橋', note: '回大阪最後衝刺' },
+                    ],
+                    shopping: [
+                        { name: '心齋橋筋', desc: '藥妝最後補貨' }
+                    ],
+                    tips: '姬路城天守閣樓梯很陡，請穿好走的鞋子。'
+                },
+                7: {
+                    date: '2/14 (六)', title: '歸途：Rinku Outlet',
+                    img: 'https://images.unsplash.com/photo-1533467647141-8318182740bc?auto=format&fit=crop&q=80&w=800',
+                    schedule: [
+                        { time: '11:00', activity: '抵達 Rinku Town', note: '機場旁最後採買' },
+                        { time: '17:00', activity: '機場報到', note: '準備登機' },
+                    ],
+                    shopping: [
+                        { name: 'Rinku Outlet', desc: '國際品牌最後折扣' }
+                    ],
+                    tips: '可以先把行李寄放在 Outlet 櫃位區。'
+                }
+            };
+
+            const copyText = () => {
+                let text = "🌟 京都・大阪行程總覽 🌟\n\n";
+                Object.keys(initialData).forEach(day => {
+                    const d = initialData[day];
+                    text += `${d.date} - ${d.title}\n`;
+                    d.schedule.forEach(s => text += `  ${s.time} ${s.activity}\n`);
+                });
+                const el = document.createElement('textarea');
+                el.value = text;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            };
+
+            const handleAddCustom = (e) => {
+                e.preventDefault();
+                if(!newItem.title) return;
+                const list = customItems[activeDay] || [];
+                setCustomItems({...customItems, [activeDay]: [...list, { ...newItem, id: Date.now() }]});
+                setNewItem({title: '', time: ''});
+                setShowAddModal(false);
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col">
+                    {/* Header */}
+                    <header className="bg-gradient-header text-white p-6 shadow-xl sticky top-0 z-30">
+                        <div className="max-w-4xl mx-auto flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-white/10 rounded-xl">
+                                    <Icon name="Map" className="text-white" size={24} />
+                                </div>
+                                <div>
+                                    <h1 className="text-xl md:text-2xl font-bold tracking-tight">京都・大阪冬日旅</h1>
+                                    <p className="text-indigo-200 text-xs">2026.02.08 - 02.14 | 旅遊攻略</p>
+                                </div>
+                            </div>
+                            <button onClick={copyText} className="bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-2 rounded-lg flex items-center gap-2 text-xs font-bold transition-all">
+                                <Icon name={copied ? "Check" : "Copy"} size={16} />
+                                {copied ? "已複製" : "複製文字"}
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* Day Tabs */}
+                    <nav className="bg-white border-b sticky top-[88px] z-20 overflow-x-auto no-scrollbar shadow-sm">
+                        <div className="max-w-4xl mx-auto flex px-4">
+                            {[1,2,3,4,5,6,7].map(d => (
+                                <button key={d} onClick={() => setActiveDay(d)} className={`flex-none px-5 py-4 text-sm font-bold border-b-2 transition-all ${activeDay === d ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+                                    Day {d}
+                                </button>
+                            ))}
+                        </div>
+                    </nav>
+
+                    <main className="flex-1 max-w-4xl mx-auto w-full p-4 md:p-6 pb-24 space-y-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {/* 主要行程卡片 */}
+                            <div className="lg:col-span-2 space-y-6">
+                                <section className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                                    <div className="h-40 w-full overflow-hidden relative">
+                                        <div className="absolute inset-0 bg-black/30 flex items-end p-6">
+                                            <div className="text-white">
+                                                <div className="text-xs font-bold uppercase tracking-widest opacity-80">{initialData[activeDay].date}</div>
+                                                <h2 className="text-2xl font-black mt-1">{initialData[activeDay].title}</h2>
+                                            </div>
+                                        </div>
+                                        <img src={initialData[activeDay].img} className="w-full h-full object-cover" alt="景點預覽" />
+                                    </div>
+
+                                    <div className="p-6">
+                                        <div className="flex justify-between items-center mb-6">
+                                            <h3 className="font-bold text-slate-400 text-xs uppercase tracking-widest">行程安排</h3>
+                                            <button onClick={() => setShowAddModal(true)} className="p-2 bg-indigo-50 text-indigo-600 rounded-full hover:bg-indigo-100 transition-colors">
+                                                <Icon name="Plus" size={20} />
+                                            </button>
+                                        </div>
+
+                                        <div className="space-y-6">
+                                            {initialData[activeDay].schedule.map((s, i) => (
+                                                <div key={i} className="flex gap-4 relative">
+                                                    {i !== initialData[activeDay].schedule.length - 1 && <div className="absolute left-[9px] top-6 w-[2px] h-full bg-slate-100"></div>}
+                                                    <div className="w-[20px] h-[20px] rounded-full bg-indigo-500 border-4 border-indigo-100 z-10 flex-shrink-0"></div>
+                                                    <div className="flex-1 pb-4">
+                                                        <div className="flex flex-col md:flex-row md:justify-between md:items-baseline mb-1">
+                                                            <span className="text-xs font-black text-slate-400 md:w-16">{s.time}</span>
+                                                            <h4 className="font-bold text-slate-800 text-lg flex-1">{s.activity}</h4>
+                                                        </div>
+                                                        <p className="text-slate-500 text-sm bg-slate-50 p-3 rounded-xl border border-slate-100 inline-block mt-1">{s.note}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {/* 自訂項目 */}
+                                            {customItems[activeDay]?.map(item => (
+                                                <div key={item.id} className="flex gap-4 relative">
+                                                    <div className="w-[20px] h-[20px] rounded-full bg-emerald-500 border-4 border-emerald-100 z-10 flex-shrink-0"></div>
+                                                    <div className="flex-1 pb-4">
+                                                        <div className="flex justify-between items-baseline">
+                                                            <span className="text-xs font-black text-emerald-500 w-16">{item.time || 'NEW'}</span>
+                                                            <h4 className="font-bold text-emerald-800 text-lg flex-1">{item.title}</h4>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <div className="bg-amber-50 rounded-2xl p-5 border border-amber-200 flex gap-4">
+                                    <div className="p-2 bg-amber-200 rounded-xl h-fit">
+                                        <Icon name="Lightbulb" className="text-amber-700" size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-amber-900 text-sm">行程筆記</h4>
+                                        <p className="text-amber-800 text-xs mt-1 leading-relaxed">{initialData[activeDay].tips}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 側邊資訊 */}
+                            <div className="space-y-6">
+                                <section className="bg-white rounded-3xl shadow-sm p-6 border border-slate-200">
+                                    <div className="flex items-center gap-2 mb-4 text-rose-500">
+                                        <Icon name="ShoppingBag" size={20} />
+                                        <h3 className="font-bold">逛街推薦</h3>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {initialData[activeDay].shopping.map((shop, i) => (
+                                            <div key={i} className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-rose-50 transition-colors">
+                                                <div className="font-bold text-slate-800 text-sm">{shop.name}</div>
+                                                <div className="text-[10px] text-slate-500 mt-1">{shop.desc}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+
+                                <section className="bg-indigo-900 rounded-3xl p-6 text-white shadow-lg">
+                                    <h3 className="font-bold text-sm text-indigo-200 uppercase tracking-widest mb-4">必備狀態</h3>
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-3">
+                                            <Icon name="CloudSnow" size={20} className="text-blue-300" />
+                                            <div>
+                                                <div className="text-[10px] opacity-60">天氣預報</div>
+                                                <div className="text-sm font-bold">2°C - 9°C</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <Icon name="Navigation" size={20} className="text-emerald-300" />
+                                            <div>
+                                                <div className="text-[10px] opacity-60">主要交通</div>
+                                                <div className="text-sm font-bold">ICOCA / JR Pass</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+                        </div>
+                    </main>
+
+                    {/* Modal */}
+                    {showAddModal && (
+                        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl scale-in">
+                                <h3 className="text-xl font-bold mb-4">新增行程</h3>
+                                <form onSubmit={handleAddCustom} className="space-y-4">
+                                    <input type="text" value={newItem.time} placeholder="時間 (如 14:30)" onChange={e => setNewItem({...newItem, time: e.target.value})} className="w-full p-3 bg-slate-50 border-none rounded-2xl text-sm" />
+                                    <input type="text" value={newItem.title} placeholder="做什麼事？" onChange={e => setNewItem({...newItem, title: e.target.value})} className="w-full p-3 bg-slate-50 border-none rounded-2xl text-sm" autoFocus />
+                                    <div className="flex gap-2 pt-2">
+                                        <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 p-3 font-bold text-slate-500">取消</button>
+                                        <button type="submit" className="flex-1 p-3 bg-indigo-600 text-white font-bold rounded-2xl">確認</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
