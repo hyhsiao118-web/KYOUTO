@@ -1,639 +1,645 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Calendar, MapPin, Clock, ExternalLink, Trash2, Plus, 
-  Save, Utensils, ShoppingBag, Info, Train, Hotel, CloudSun, 
-  Printer, ChevronRight, Edit2, X, RotateCcw
+  Calendar, MapPin, Coffee, Utensils, AlertCircle, 
+  Trash2, Plus, ExternalLink, Save, Printer, Edit3, 
+  Sun, Cloud, CloudRain, Snowflake, Train, Ticket
 } from 'lucide-react';
 
-// 預設行程資料 (這部分保持不變，作為重置時的備份)
-const INITIAL_DATA = [
-  {
-    date: "2/8 (六)",
-    dayTitle: "第一天：抵達京都",
-    weather: "晴時多雲",
-    transport: "利木津巴士 (關西機場 -> 京都車站)",
-    accommodation: "素居旅舍 (Guest House SOI)",
-    ticketInfo: "ICOCA / 利木津巴士票",
-    schedule: [
-      { id: 1, time: "05:00", location: "家裡", note: "派車接送前往機場", transport: "專車", link: "" },
-      { id: 2, time: "08:05", location: "桃園機場 T2", note: "華航 CI156 起飛", transport: "飛機", link: "" },
-      { id: 3, time: "11:35", location: "關西機場 T1", note: "抵達，至 1 樓大廳 C 出口搭巴士", transport: "步行", link: "" },
-      { id: 4, time: "13:30", location: "京都車站", note: "預計抵達，先在車站內吃午餐", transport: "巴士", link: "" },
-      { id: 5, time: "15:00", location: "素居旅舍", note: "Check-in (距清水寺步行10分)", transport: "巴士/計程車", link: "https://guesthousesoi.com/what-we-provide-tw/" },
-      { id: 6, time: "16:00", location: "周邊散策", note: "清水寺周邊隨意逛逛", transport: "步行", link: "" },
-    ],
-    food: {
-      breakfast: "",
-      lunch: "京都車站內 (拉麵小路?)",
-      dinner: "飯店附近",
-      wishlist: ["中村藤吉", "551蓬萊肉包"]
-    },
-    shopping: [],
-    notes: "T1 抵達 1 樓大廳後，從 C 出口走出去最快。巴士車程約 85-90 分鐘。"
+// 預設資料結構
+const INITIAL_DAYS = Array.from({ length: 7 }, (_, i) => ({
+  id: i + 1,
+  date: `Day ${i + 1}`,
+  weather: 'sunny',
+  transport: '',
+  ticketType: 'IC Card', // 'Ticket', 'Pass', 'IC Card'
+  accommodation: '',
+  schedule: [
+    { id: Date.now(), time: '09:00', activity: '抵達京都車站', link: '' },
+    { id: Date.now() + 1, time: '12:00', activity: '午餐', link: '' }
+  ],
+  shopping: [],
+  food: {
+    wishlist: [],
+    breakfast: '',
+    lunch: '',
+    dinner: ''
   },
-  {
-    date: "2/9 (日)",
-    dayTitle: "第二天：伏見酒藏與宇治抹茶",
-    weather: "多雲",
-    transport: "京阪電車 / 近鐵",
-    accommodation: "素居旅舍",
-    ticketInfo: "ICOCA / 京阪電車一日券(可考慮)",
-    schedule: [
-      { id: 1, time: "09:00", location: "伏見桃山", note: "酒藏＋老街散步", transport: "京阪-伏見桃山站", link: "" },
-      { id: 2, time: "10:30", location: "伏見十石舟", note: "搭船或河岸散步", transport: "步行", link: "" },
-      { id: 3, time: "12:00", location: "中書島站", note: "前往宇治 (轉車一次約20分)", transport: "京阪電車", link: "" },
-      { id: 4, time: "12:30", location: "宇治", note: "午餐 + 平等院參觀", transport: "步行", link: "" },
-      { id: 5, time: "14:30", location: "宇治表參道", note: "抹茶甜點體驗", transport: "步行", link: "" },
-    ],
-    food: {
-      breakfast: "便利商店 / 飯店",
-      lunch: "宇治伊藤久右衛門 / 中村藤吉",
-      dinner: "伏見或回京都吃",
-      wishlist: ["抹茶冰淇淋", "清酒試飲"]
-    },
-    shopping: [
-      { id: 1, shop: "月桂冠大倉紀念館", item: "清酒", location: "伏見" },
-      { id: 2, shop: "宇治茶鋪", item: "茶葉/抹茶粉", location: "宇治" }
-    ],
-    notes: "伏見到宇治很近。京阪電車:伏見桃山→中書島→宇治站。"
-  },
-  {
-    date: "2/10 (一)",
-    dayTitle: "第三天：E-Bike 京都漫遊",
-    weather: "晴朗",
-    transport: "E-Bike (租賃)",
-    accommodation: "素居旅舍",
-    ticketInfo: "租車費用",
-    schedule: [
-      { id: 1, time: "09:30", location: "清水寺附近", note: "取 E-Bike，調整座椅確認電量", transport: "取車", link: "" },
-      { id: 2, time: "09:45", location: "高台寺周邊", note: "慢騎＋步行，氣氛好拍照", transport: "騎車", link: "" },
-      { id: 3, time: "10:30", location: "八坂神社", note: "停車方便，稍作休息", transport: "騎車", link: "" },
-      { id: 4, time: "11:15", location: "祇園／河原町", note: "午餐時間，坐著吃不趕行程", transport: "步行", link: "" },
-      { id: 5, time: "13:00", location: "鴨川河岸", note: "全程平坦，騎車最舒服的路段", transport: "騎車", link: "" },
-      { id: 6, time: "14:45", location: "下鴨神社", note: "(選去) 累了可跳過", transport: "騎車", link: "" },
-      { id: 7, time: "15:45", location: "京都御苑", note: "(選去) 大草地放鬆", transport: "慢騎", link: "" },
-      { id: 8, time: "16:45", location: "河原町", note: "咖啡/甜點補體力", transport: "步行", link: "" },
-      { id: 9, time: "18:30", location: "河原町租車店", note: "還車 (注意店家最晚時間)", transport: "還車", link: "" },
-    ],
-    food: {
-      breakfast: "麵包/咖啡",
-      lunch: "祇園周邊",
-      dinner: "河原町",
-      wishlist: ["鴨川納涼床(季節不對但在岸邊吃不錯)", "日式甜點"]
-    },
-    shopping: [
-      { id: 1, shop: "河原町百貨", item: "服飾/雜貨", location: "四條河原町" }
-    ],
-    notes: "⚠️老街、神社內禁止騎行，需下車牽車。腳踏車一定要停在指定停車場。備案：若下雪或無法騎車，改走方案二：清水寺→祇園→八坂→河原町→金閣寺。"
-  },
-  {
-    date: "2/11 (二)",
-    dayTitle: "第四天：美山茅草屋之里 (自駕去)",
-    weather: "可能下雪",
-    transport: "租車自駕",
-    accommodation: "美山民宿 / 或回市區 (依實際訂房)",
-    ticketInfo: "租車單據 / 駕照日譯本",
-    schedule: [
-      { id: 1, time: "08:30", location: "租車公司", note: "前往取車，檢查車況", transport: "取車", link: "" },
-      { id: 2, time: "09:30", location: "往美山方向", note: "直接導航美山茅草屋之里", transport: "自駕", link: "" },
-      { id: 3, time: "11:30", location: "美山", note: "抵達，散步拍照", transport: "步行", link: "" },
-    ],
-    food: {
-      breakfast: "",
-      lunch: "美山當地蕎麥麵/雞肉鍋",
-      dinner: "民宿晚餐",
-      wishlist: ["美山牛奶", "美山布丁"]
-    },
-    shopping: [],
-    notes: "開車注意路況，若山區有雪需確認輪胎狀況。"
-  },
-  {
-    date: "2/12 (三)",
-    dayTitle: "第五天：嵐山與移動至大阪",
-    weather: "多雲",
-    transport: "自駕 -> JR/私鐵往大阪",
-    accommodation: "大阪飯店",
-    ticketInfo: "ICOCA",
-    schedule: [
-      { id: 1, time: "09:00", location: "美山出發", note: "往嵐山方向移動", transport: "自駕", link: "" },
-      { id: 2, time: "11:00", location: "嵐山", note: "渡月橋、竹林之道", transport: "步行", link: "" },
-      { id: 3, time: "16:00", location: "京都租車店", note: "傍晚歸還租車", transport: "還車", link: "" },
-      { id: 4, time: "17:30", location: "前往大阪", note: "搭乘 JR 或阪急前往大阪住宿", transport: "電車", link: "" },
-    ],
-    food: {
-      breakfast: "民宿",
-      lunch: "嵐山豆腐料理",
-      dinner: "大阪燒/章魚燒",
-      wishlist: ["嵐山% Arabica咖啡"]
-    },
-    shopping: [],
-    notes: "移動日，注意行李寄放或隨車攜帶。"
-  },
-  {
-    date: "2/13 (四)",
-    dayTitle: "第六天：姬路城一日遊",
-    weather: "晴朗",
-    transport: "JR 新幹線 / JR 新快速",
-    accommodation: "大阪飯店",
-    ticketInfo: "JR Pass (若有買) 或 單程購票",
-    schedule: [
-      { id: 1, time: "07:30", location: "大阪/新大阪", note: "建議搭新幹線 Hikari/Kodama (約30-40分)", transport: "JR", link: "" },
-      { id: 2, time: "08:45", location: "姬路站", note: "抵達，出站看指標", transport: "步行", link: "" },
-      { id: 3, time: "09:00", location: "姬路城", note: "步行(15分)或巴士(5分, ¥100)", transport: "巴士/步", link: "" },
-      { id: 4, time: "09:30", location: "姬路城內", note: "參觀主塔及城內區域", transport: "步行", link: "" },
-      { id: 5, time: "11:30", location: "姬路站周邊", note: "午餐時間", transport: "步行", link: "" },
-      { id: 6, time: "12:45", location: "好古園", note: "姬路城西側，日式庭園", transport: "步行", link: "" },
-      { id: 7, time: "14:15", location: "書寫山圓教寺", note: "(選) 搭纜車上山，或逛商店街", transport: "巴士/纜車", link: "" },
-      { id: 8, time: "15:30", location: "piole姬路", note: "購物/小歇", transport: "步行", link: "" },
-      { id: 9, time: "16:30", location: "返回大阪", note: "視體力調整時間", transport: "JR", link: "" },
-      { id: 10, time: "18:00", location: "道頓堀/心齋橋", note: "晚餐與夜景", transport: "地鐵", link: "" },
-    ],
-    food: {
-      breakfast: "便利商店",
-      lunch: "穴子丼 / 姬路關東煮",
-      dinner: "大阪心齋橋",
-      wishlist: ["姬路特色魚板"]
-    },
-    shopping: [
-      { id: 1, shop: "piole姬路", item: "伴手禮", location: "姬路站" }
-    ],
-    notes: "門票：姬路城¥1000，聯票(含好古園)¥1050(強烈推薦)。拍照點：三之丸廣場、天守閣頂樓。"
-  },
-  {
-    date: "2/14 (五)",
-    dayTitle: "第七天：購物與回程",
-    weather: "晴",
-    transport: "建明租車接送 / 飛機",
-    accommodation: "溫暖的家",
-    ticketInfo: "機票",
-    schedule: [
-      { id: 1, time: "10:00", location: "大阪市區/Outlet", note: "往機場方向，臨空城 Outlet 購物", transport: "電車/巴士", link: "" },
-      { id: 2, time: "16:30", location: "關西機場 T1", note: "辦理登機，最後採買", transport: "電車", link: "" },
-      { id: 3, time: "19:00", location: "關西機場", note: "CI173 起飛", transport: "飛機", link: "" },
-      { id: 4, time: "21:15", location: "桃園機場", note: "抵達台灣", transport: "飛機", link: "" },
-    ],
-    food: {
-      breakfast: "",
-      lunch: "Outlet 美食街",
-      dinner: "機上餐",
-      wishlist: []
-    },
-    shopping: [
-      { id: 1, shop: "Rinku Premium Outlets", item: "運動品牌/精品", location: "臨空城" },
-      { id: 2, shop: "免稅店", item: "東京香蕉/薯條三兄弟", location: "KIX機場" }
-    ],
-    notes: "建明租車 TEL: 03-577-0858。請預留足夠時間退稅。"
+  notes: ''
+}));
+
+const WeatherIcon = ({ type, className }) => {
+  switch (type) {
+    case 'sunny': return <Sun className={`text-orange-500 ${className}`} />;
+    case 'cloudy': return <Cloud className={`text-gray-500 ${className}`} />;
+    case 'rainy': return <CloudRain className={`text-blue-500 ${className}`} />;
+    case 'snowy': return <Snowflake className={`text-cyan-500 ${className}`} />;
+    default: return <Sun className={`text-orange-500 ${className}`} />;
   }
-];
+};
 
-const App = () => {
-  // 修改 1: 從 localStorage 讀取資料，如果沒有則使用 INITIAL_DATA
-  const [itinerary, setItinerary] = useState(() => {
-    try {
-      const savedData = localStorage.getItem('kyoto_trip_data');
-      return savedData ? JSON.parse(savedData) : INITIAL_DATA;
-    } catch (e) {
-      console.error("讀取儲存資料失敗", e);
-      return INITIAL_DATA;
-    }
-  });
-  
-  const [activeDay, setActiveDay] = useState(0);
+export default function App() {
+  // 狀態管理
+  const [days, setDays] = useState(INITIAL_DAYS);
+  const [activeDayId, setActiveDayId] = useState(1);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
 
-  // 修改 2: 當行程變更時，自動儲存到 localStorage
+  // 初始化讀取 LocalStorage
   useEffect(() => {
-    localStorage.setItem('kyoto_trip_data', JSON.stringify(itinerary));
-  }, [itinerary]);
-
-  // 修改 3: 重置功能
-  const resetData = () => {
-    if (window.confirm("確定要重置所有行程嗎？您編輯的資料將會消失，回到預設狀態。")) {
-      setItinerary(INITIAL_DATA);
-      localStorage.removeItem('kyoto_trip_data');
+    const savedData = localStorage.getItem('kyoto_trip_data');
+    if (savedData) {
+      try {
+        setDays(JSON.parse(savedData));
+      } catch (e) {
+        console.error("讀取存檔失敗", e);
+      }
     }
+  }, []);
+
+  // 自動儲存到 LocalStorage
+  useEffect(() => {
+    localStorage.setItem('kyoto_trip_data', JSON.stringify(days));
+  }, [days]);
+
+  const activeDay = days.find(d => d.id === activeDayId) || days[0];
+
+  // 更新當前天數的特定欄位
+  const updateDay = (field, value) => {
+    setDays(prev => prev.map(day => 
+      day.id === activeDayId ? { ...day, [field]: value } : day
+    ));
   };
 
-  // 排序行程的 Helper
-  const sortSchedule = (schedule) => {
-    return [...schedule].sort((a, b) => a.time.localeCompare(b.time));
+  // --- 行程表邏輯 ---
+  const addScheduleItem = () => {
+    const newItem = { id: Date.now(), time: '10:00', activity: '', link: '' };
+    const updatedSchedule = [...activeDay.schedule, newItem].sort((a, b) => a.time.localeCompare(b.time));
+    updateDay('schedule', updatedSchedule);
   };
 
-  // 更新行程
-  const updateSchedule = (dayIndex, newSchedule) => {
-    const newItinerary = [...itinerary];
-    newItinerary[dayIndex].schedule = sortSchedule(newSchedule);
-    setItinerary(newItinerary);
-  };
-
-  // 新增行程項目
-  const addScheduleItem = (dayIndex) => {
-    const newItem = {
-      id: Date.now(),
-      time: "12:00",
-      location: "新地點",
-      note: "新行程說明",
-      transport: "移動方式",
-      link: ""
-    };
-    const newSchedule = [...itinerary[dayIndex].schedule, newItem];
-    updateSchedule(dayIndex, newSchedule);
-  };
-
-  // 修改行程項目
-  const editScheduleItem = (dayIndex, itemId, field, value) => {
-    const newSchedule = itinerary[dayIndex].schedule.map(item => 
-      item.id === itemId ? { ...item, [field]: value } : item
+  const updateScheduleItem = (id, field, value) => {
+    let updatedSchedule = activeDay.schedule.map(item => 
+      item.id === id ? { ...item, [field]: value } : item
     );
-    updateSchedule(dayIndex, newSchedule);
-  };
-
-  // 刪除行程項目
-  const deleteScheduleItem = (dayIndex, itemId) => {
-    const newSchedule = itinerary[dayIndex].schedule.filter(item => item.id !== itemId);
-    updateSchedule(dayIndex, newSchedule);
-  };
-
-  // 更新基本資訊/備註/天氣
-  const updateDayInfo = (dayIndex, field, value) => {
-    const newItinerary = [...itinerary];
-    newItinerary[dayIndex][field] = value;
-    setItinerary(newItinerary);
-  };
-
-  // 更新 Nested 物件 (Food)
-  const updateFood = (dayIndex, field, value) => {
-    const newItinerary = [...itinerary];
-    newItinerary[dayIndex].food[field] = value;
-    setItinerary(newItinerary);
-  };
-  
-  // 新增/刪除購物清單
-  const addShoppingItem = (dayIndex) => {
-    const newItem = { id: Date.now(), shop: "", item: "", location: "" };
-    const newItinerary = [...itinerary];
-    newItinerary[dayIndex].shopping.push(newItem);
-    setItinerary(newItinerary);
-  };
-
-  const updateShoppingItem = (dayIndex, itemId, field, value) => {
-    const newItinerary = [...itinerary];
-    const item = newItinerary[dayIndex].shopping.find(i => i.id === itemId);
-    if(item) item[field] = value;
-    setItinerary(newItinerary);
-  };
-
-  const deleteShoppingItem = (dayIndex, itemId) => {
-    const newItinerary = [...itinerary];
-    newItinerary[dayIndex].shopping = newItinerary[dayIndex].shopping.filter(i => i.id !== itemId);
-    setItinerary(newItinerary);
-  };
-
-  // 處理連結點擊
-  const handleLinkClick = (e, url) => {
-    if (!url) {
-      e.preventDefault();
-      return;
+    // 如果修改的是時間，重新排序
+    if (field === 'time') {
+      updatedSchedule.sort((a, b) => a.time.localeCompare(b.time));
     }
-    // 簡單的URL驗證
-    if (!url.startsWith('http')) {
-      window.open(`https://${url}`, '_blank');
-    } else {
-      window.open(url, '_blank');
-    }
+    updateDay('schedule', updatedSchedule);
   };
 
+  const deleteScheduleItem = (id) => {
+    updateDay('schedule', activeDay.schedule.filter(item => item.id !== id));
+  };
+
+  // --- 購物清單邏輯 ---
+  const addShopItem = () => {
+    const newItem = { id: Date.now(), name: '', location: '' };
+    updateDay('shopping', [...activeDay.shopping, newItem]);
+  };
+
+  const updateShopItem = (id, field, value) => {
+    updateDay('shopping', activeDay.shopping.map(item => 
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  };
+
+  const deleteShopItem = (id) => {
+    updateDay('shopping', activeDay.shopping.filter(item => item.id !== id));
+  };
+
+  // --- 美食區邏輯 ---
+  const addFoodWish = () => {
+    const newItem = { id: Date.now(), name: '', note: '', checked: false };
+    updateDay('food', { ...activeDay.food, wishlist: [...activeDay.food.wishlist, newItem] });
+  };
+
+  const updateFoodWish = (id, field, value) => {
+    updateDay('food', {
+      ...activeDay.food,
+      wishlist: activeDay.food.wishlist.map(item => item.id === id ? { ...item, [field]: value } : item)
+    });
+  };
+
+  const deleteFoodWish = (id) => {
+    updateDay('food', {
+      ...activeDay.food,
+      wishlist: activeDay.food.wishlist.filter(item => item.id !== id)
+    });
+  };
+
+  // --- 匯出功能 ---
   const handlePrint = () => {
-    window.print();
+    setIsPreviewMode(true);
+    setTimeout(() => {
+      window.print();
+      // 列印對話框關閉後可以選擇是否要切換回來，這裡保持預覽模式讓使用者確認
+    }, 100);
+  };
+
+  const handleExportText = () => {
+    let text = `京都七日遊行程表\n\n`;
+    days.forEach(day => {
+      text += `=== ${day.date} ===\n`;
+      text += `天氣: ${day.weather} | 交通: ${day.transport} (${day.ticketType}) | 住宿: ${day.accommodation}\n`;
+      text += `--- 行程 ---\n`;
+      day.schedule.forEach(item => {
+        text += `${item.time} ${item.activity} ${item.link ? `[連結: ${item.link}]` : ''}\n`;
+      });
+      text += `\n`;
+    });
+    
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '京都行程.txt';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="min-h-screen bg-stone-100 text-stone-800 font-sans pb-20 print:bg-white print:p-0 print:pb-0">
-      {/* Header - No Print */}
-      <div className="bg-emerald-800 text-white p-4 shadow-md sticky top-0 z-50 print:hidden flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <Calendar className="w-6 h-6" /> 京都七天自由行規劃
-          </h1>
-          <p className="text-xs text-emerald-100 opacity-80 mt-1">2/8 - 2/14 京都・宇治・美山・姬路</p>
-        </div>
-        <div className="flex gap-2">
-          <button 
-            onClick={resetData}
-            className="bg-emerald-900/50 text-white px-3 py-2 rounded-lg font-bold hover:bg-emerald-900 transition flex items-center gap-2 text-xs shadow-sm"
-            title="重置回預設行程"
-          >
-            <RotateCcw className="w-4 h-4" /> 重置
-          </button>
-          <button 
-            onClick={handlePrint}
-            className="bg-white text-emerald-800 px-4 py-2 rounded-lg font-bold hover:bg-emerald-50 transition flex items-center gap-2 text-sm shadow-sm"
-          >
-            <Printer className="w-4 h-4" /> 匯出 (PDF)
-          </button>
-        </div>
-      </div>
-
-      {/* Main Layout */}
-      <div className="max-w-5xl mx-auto md:p-6 p-2 flex flex-col md:flex-row gap-6 print:block print:w-full print:max-w-none print:p-0">
-        
-        {/* Sidebar Navigation - No Print */}
-        <div className="md:w-64 w-full bg-white rounded-xl shadow-sm p-4 h-fit sticky top-24 print:hidden overflow-x-auto">
-          <h3 className="font-bold text-stone-600 mb-3 px-2">行程日期</h3>
-          <div className="flex md:flex-col gap-2 min-w-max md:min-w-0">
-            {itinerary.map((day, index) => (
-              <button
-                key={index}
-                onClick={() => setActiveDay(index)}
-                className={`text-left px-4 py-3 rounded-lg text-sm transition-all border border-transparent ${
-                  activeDay === index 
-                  ? "bg-emerald-100 text-emerald-900 border-emerald-200 font-bold shadow-sm" 
-                  : "hover:bg-stone-50 text-stone-600"
-                }`}
+    <div className="min-h-screen bg-stone-100 font-sans text-stone-800">
+      {/* 頂部導航列 (列印時隱藏) */}
+      {!isPreviewMode && (
+        <header className="bg-indigo-900 text-white p-4 shadow-lg sticky top-0 z-50">
+          <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <MapPin className="text-pink-400" /> 京都自由行規劃
+            </h1>
+            <div className="flex gap-2 flex-wrap justify-center">
+              {days.map(day => (
+                <button
+                  key={day.id}
+                  onClick={() => setActiveDayId(day.id)}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                    activeDayId === day.id 
+                    ? 'bg-pink-500 text-white' 
+                    : 'bg-indigo-800 text-gray-300 hover:bg-indigo-700'
+                  }`}
+                >
+                  Day {day.id}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button 
+                onClick={handleExportText}
+                className="flex items-center gap-1 px-3 py-2 bg-indigo-700 hover:bg-indigo-600 rounded text-sm"
               >
-                <div className="flex justify-between items-center">
-                  <span>{day.date}</span>
-                  {activeDay === index && <ChevronRight className="w-4 h-4" />}
-                </div>
-                <div className="text-xs opacity-75 mt-1 truncate">{day.dayTitle}</div>
+                <Save size={16} /> 文字檔
               </button>
-            ))}
+              <button 
+                onClick={handlePrint}
+                className="flex items-center gap-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 rounded text-sm"
+              >
+                <Printer size={16} /> 匯出PDF
+              </button>
+            </div>
           </div>
-        </div>
+        </header>
+      )}
 
-        {/* Print Only Header */}
-        <div className="hidden print:block mb-8 text-center border-b-2 border-emerald-800 pb-4">
-          <h1 className="text-3xl font-bold text-emerald-900">京都七天自由行行程表</h1>
-          <p className="text-stone-600 mt-2">日期：2025/02/08 - 2025/02/14</p>
+      {/* 預覽模式的控制列 */}
+      {isPreviewMode && (
+        <div className="bg-gray-800 text-white p-2 text-center print:hidden sticky top-0 z-50">
+          <p className="inline mr-4">目前為預覽列印模式</p>
+          <button 
+            onClick={() => setIsPreviewMode(false)}
+            className="px-3 py-1 bg-gray-600 rounded text-sm hover:bg-gray-500"
+          >
+            返回編輯模式
+          </button>
+          <button 
+            onClick={() => window.print()}
+            className="ml-2 px-3 py-1 bg-emerald-600 rounded text-sm hover:bg-emerald-500"
+          >
+            列印
+          </button>
         </div>
+      )}
 
-        {/* Content Area */}
-        <div className="flex-1 space-y-6 print:space-y-12">
-          
-          {/* Loop for Print (Show all days) or Single Day View */}
-          {itinerary.map((day, dIndex) => (
-            <div 
-              key={dIndex} 
-              className={`bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden ${
-                activeDay !== dIndex ? "hidden print:block print:break-inside-avoid" : ""
-              }`}
-            >
-              {/* Day Header */}
-              <div className="bg-stone-50 border-b border-stone-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-stone-800 flex items-center gap-2">
-                    <span className="bg-emerald-800 text-white text-sm px-2 py-1 rounded">{day.date}</span>
-                    <input 
-                      value={day.dayTitle}
-                      onChange={(e) => updateDayInfo(dIndex, 'dayTitle', e.target.value)}
-                      className="bg-transparent border-b border-transparent hover:border-stone-300 focus:border-emerald-500 focus:outline-none w-full sm:w-auto"
-                    />
-                  </h2>
-                </div>
-                <div className="flex items-center gap-4 text-sm text-stone-600">
-                  <div className="flex items-center gap-1 bg-white px-3 py-1 rounded-full border border-stone-200">
-                    <CloudSun className="w-4 h-4 text-orange-500" />
-                    <input 
-                      value={day.weather}
-                      onChange={(e) => updateDayInfo(dIndex, 'weather', e.target.value)}
-                      className="w-20 bg-transparent focus:outline-none text-center"
-                      placeholder="天氣"
-                    />
-                  </div>
-                </div>
+      <main className="max-w-6xl mx-auto p-4 md:p-6 space-y-6 print:p-0 print:max-w-none">
+        
+        {/* 如果是預覽模式，我們可能想一次顯示所有天數，或者只顯示當前天數。
+            為了 PDF 匯出需求，通常是一次印出所有天數比較方便。
+            這裡我們做個邏輯：編輯模式顯示單天，預覽模式顯示所有天數 (方便一次轉 PDF)。
+        */}
+        {(isPreviewMode ? days : [activeDay]).map((day) => (
+          <div key={day.id} className="bg-white rounded-xl shadow-md overflow-hidden print:shadow-none print:break-after-page mb-8 border border-stone-200">
+            
+            {/* 卡片標題區 */}
+            <div className="bg-stone-50 p-4 border-b border-stone-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="flex items-center gap-3">
+                <span className="bg-indigo-900 text-white text-xl font-bold px-3 py-1 rounded">Day {day.id}</span>
+                {/* 日期編輯 (編輯模式) / 顯示 (預覽模式) */}
+                {isPreviewMode ? (
+                   <span className="text-xl font-semibold text-stone-700">{day.date}</span>
+                ) : (
+                  <input
+                    type="text"
+                    value={day.date}
+                    onChange={(e) => {
+                      const newDays = days.map(d => d.id === day.id ? { ...d, date: e.target.value } : d);
+                      setDays(newDays);
+                    }}
+                    className="text-xl font-semibold bg-transparent border-b border-dashed border-stone-300 focus:border-indigo-500 outline-none w-48 text-stone-700 placeholder-stone-400"
+                    placeholder="輸入日期 (例如: 10/25)"
+                  />
+                )}
               </div>
 
-              <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                {/* Left Column: Basic Info & Schedule */}
-                <div className="lg:col-span-2 space-y-6">
-                  
-                  {/* Basic Info Box */}
-                  <div className="bg-blue-50/50 rounded-lg p-4 border border-blue-100">
-                    <h3 className="font-bold text-blue-900 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
-                      <Info className="w-4 h-4" /> 當日基本資訊
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div className="flex flex-col">
-                        <label className="text-blue-800/60 text-xs mb-1 flex items-center gap-1"><Train className="w-3 h-3" /> 主要交通 / 票券</label>
-                        <div className="flex gap-2">
-                          <input 
-                            value={day.transport} 
-                            onChange={(e) => updateDayInfo(dIndex, 'transport', e.target.value)}
-                            className="flex-1 bg-white border border-blue-200 rounded px-2 py-1 text-stone-700" 
-                            placeholder="移動方式"
-                          />
-                          <input 
-                            value={day.ticketInfo} 
-                            onChange={(e) => updateDayInfo(dIndex, 'ticketInfo', e.target.value)}
-                            className="flex-1 bg-white border border-blue-200 rounded px-2 py-1 text-stone-700" 
-                            placeholder="使用票券"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex flex-col">
-                        <label className="text-blue-800/60 text-xs mb-1 flex items-center gap-1"><Hotel className="w-3 h-3" /> 當晚住宿</label>
-                        <input 
-                          value={day.accommodation} 
-                          onChange={(e) => updateDayInfo(dIndex, 'accommodation', e.target.value)}
-                          className="w-full bg-white border border-blue-200 rounded px-2 py-1 text-stone-700" 
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Schedule List */}
-                  <div>
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="font-bold text-lg text-stone-800 flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-emerald-600" /> 行程時間表
-                      </h3>
-                      <button 
-                        onClick={() => addScheduleItem(dIndex)}
-                        className="text-emerald-600 hover:text-emerald-700 text-sm font-bold flex items-center gap-1 print:hidden"
-                      >
-                        <Plus className="w-4 h-4" /> 新增行程
-                      </button>
-                    </div>
-
-                    <div className="space-y-3 relative before:absolute before:left-[4.5rem] before:top-4 before:bottom-4 before:w-0.5 before:bg-stone-200 before:content-[''] print:before:hidden">
-                      {day.schedule.map((item) => (
-                        <div key={item.id} className="relative group flex flex-col sm:flex-row gap-4 items-start bg-white p-3 rounded-lg border border-transparent hover:border-stone-200 hover:shadow-sm transition-all print:border-b print:border-stone-100 print:shadow-none print:p-1">
-                          
-                          {/* Time */}
-                          <div className="sm:w-16 w-full flex-shrink-0 z-10">
-                            <input 
-                              type="time"
-                              value={item.time}
-                              onChange={(e) => editScheduleItem(dIndex, item.id, 'time', e.target.value)}
-                              className="bg-stone-100 sm:text-right font-mono font-bold text-stone-700 rounded px-2 py-1 w-full focus:outline-none focus:ring-2 focus:ring-emerald-500 print:bg-transparent print:p-0"
-                            />
-                          </div>
-
-                          {/* Content */}
-                          <div className="flex-1 w-full">
-                            <div className="flex items-center gap-2 mb-1">
-                              <input 
-                                value={item.location}
-                                onChange={(e) => editScheduleItem(dIndex, item.id, 'location', e.target.value)}
-                                className="font-bold text-stone-800 text-lg w-full bg-transparent border-b border-transparent focus:border-stone-300 focus:outline-none placeholder-stone-300 print:text-black"
-                                placeholder="地點"
-                              />
-                              <div className="flex gap-1 print:hidden">
-                                <div className="relative">
-                                    <input 
-                                        value={item.link}
-                                        onChange={(e) => editScheduleItem(dIndex, item.id, 'link', e.target.value)}
-                                        placeholder="連結 URL"
-                                        className="w-0 group-hover:w-32 transition-all duration-300 bg-stone-50 border border-stone-200 text-xs px-2 py-1 rounded focus:w-48 focus:outline-none"
-                                    />
-                                    {item.link && (
-                                        <button onClick={(e) => handleLinkClick(e, item.link)} className="absolute right-[-24px] top-1 text-blue-500 hover:text-blue-700">
-                                            <ExternalLink className="w-4 h-4" />
-                                        </button>
-                                    )}
-                                </div>
-                                <button 
-                                  onClick={() => deleteScheduleItem(dIndex, item.id)}
-                                  className="text-stone-300 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                            
-                            <div className="flex flex-col gap-1">
-                              <input 
-                                value={item.note}
-                                onChange={(e) => editScheduleItem(dIndex, item.id, 'note', e.target.value)}
-                                className="text-sm text-stone-600 w-full bg-transparent focus:outline-none print:text-black"
-                                placeholder="備註事項"
-                              />
-                              <div className="flex items-center gap-2 text-xs text-stone-400">
-                                <span className="bg-stone-100 px-1.5 py-0.5 rounded print:border print:border-stone-200">
-                                  <input 
-                                    value={item.transport}
-                                    onChange={(e) => editScheduleItem(dIndex, item.id, 'transport', e.target.value)}
-                                    className="bg-transparent focus:outline-none w-24 text-stone-500"
-                                    placeholder="移動方式"
-                                  />
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+              {/* 基本資訊區塊 (交通/住宿/天氣) */}
+              <div className="flex flex-wrap gap-4 text-sm w-full md:w-auto">
+                <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded border border-stone-200 shadow-sm">
+                  <WeatherIcon type={day.weather} className="w-5 h-5" />
+                  {!isPreviewMode ? (
+                    <select 
+                      value={day.weather}
+                      onChange={(e) => {
+                        const newDays = days.map(d => d.id === day.id ? { ...d, weather: e.target.value } : d);
+                        setDays(newDays);
+                      }}
+                      className="bg-transparent outline-none cursor-pointer"
+                    >
+                      <option value="sunny">晴天</option>
+                      <option value="cloudy">多雲</option>
+                      <option value="rainy">雨天</option>
+                      <option value="snowy">下雪</option>
+                    </select>
+                  ) : (
+                    <span>{{sunny:'晴天', cloudy:'多雲', rainy:'雨天', snowy:'下雪'}[day.weather]}</span>
+                  )}
                 </div>
 
-                {/* Right Column: Shopping, Food, Notes */}
-                <div className="space-y-6">
-                  
-                  {/* Notes Area */}
-                  <div className="bg-amber-50 rounded-lg p-4 border border-amber-100">
-                    <h3 className="font-bold text-amber-900 mb-2 flex items-center gap-2 text-sm uppercase tracking-wider">
-                      <Edit2 className="w-4 h-4" /> 當日備註
-                    </h3>
-                    <textarea 
-                      value={day.notes}
-                      onChange={(e) => updateDayInfo(dIndex, 'notes', e.target.value)}
-                      className="w-full bg-white/50 text-stone-700 text-sm p-2 rounded border-amber-200 border h-24 focus:ring-1 focus:ring-amber-400 focus:outline-none resize-none"
+                <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded border border-stone-200 shadow-sm flex-1 md:flex-none">
+                  <Train className="w-4 h-4 text-indigo-600" />
+                  {!isPreviewMode ? (
+                    <input 
+                      type="text" 
+                      value={day.transport}
+                      onChange={(e) => {
+                         const newDays = days.map(d => d.id === day.id ? { ...d, transport: e.target.value } : d);
+                         setDays(newDays);
+                      }}
+                      placeholder="今日主要交通"
+                      className="bg-transparent outline-none w-full md:w-32"
                     />
-                  </div>
+                  ) : (
+                    <span>{day.transport || '未設定交通'}</span>
+                  )}
+                  
+                  <span className="text-stone-300">|</span>
+                  
+                  {!isPreviewMode ? (
+                    <select
+                      value={day.ticketType}
+                      onChange={(e) => {
+                        const newDays = days.map(d => d.id === day.id ? { ...d, ticketType: e.target.value } : d);
+                        setDays(newDays);
+                      }}
+                      className="bg-transparent outline-none text-stone-600 text-xs"
+                    >
+                      <option value="IC Card">西瓜卡/ICOCA</option>
+                      <option value="Ticket">需買票</option>
+                      <option value="Pass">周遊券</option>
+                    </select>
+                  ) : (
+                    <span className="text-xs bg-stone-100 px-1 rounded text-stone-600">{day.ticketType}</span>
+                  )}
+                </div>
 
-                  {/* Food Section */}
-                  <div className="bg-white rounded-lg border border-stone-200 p-4">
-                     <h3 className="font-bold text-stone-700 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
-                      <Utensils className="w-4 h-4 text-orange-400" /> 美食地圖
-                    </h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="grid grid-cols-[3rem_1fr] gap-2 items-center">
-                        <span className="text-stone-400 text-xs">早餐</span>
-                        <input value={day.food.breakfast} onChange={(e) => updateFood(dIndex, 'breakfast', e.target.value)} className="bg-stone-50 rounded px-2 py-1 w-full border border-stone-100 focus:border-orange-300 outline-none" placeholder="未定" />
-                      </div>
-                      <div className="grid grid-cols-[3rem_1fr] gap-2 items-center">
-                        <span className="text-stone-400 text-xs">午餐</span>
-                        <input value={day.food.lunch} onChange={(e) => updateFood(dIndex, 'lunch', e.target.value)} className="bg-stone-50 rounded px-2 py-1 w-full border border-stone-100 focus:border-orange-300 outline-none" placeholder="未定" />
-                      </div>
-                      <div className="grid grid-cols-[3rem_1fr] gap-2 items-center">
-                        <span className="text-stone-400 text-xs">晚餐</span>
-                        <input value={day.food.dinner} onChange={(e) => updateFood(dIndex, 'dinner', e.target.value)} className="bg-stone-50 rounded px-2 py-1 w-full border border-stone-100 focus:border-orange-300 outline-none" placeholder="未定" />
-                      </div>
-                      <div className="mt-3 pt-3 border-t border-stone-100">
-                        <span className="text-stone-400 text-xs block mb-1">想吃清單 (Wishlist)</span>
-                        <textarea 
-                            value={day.food.wishlist.join(', ')} 
-                            onChange={(e) => {
-                                const list = e.target.value.split(',').map(s => s.trim());
-                                updateFood(dIndex, 'wishlist', list)
-                            }}
-                            className="w-full bg-orange-50/30 text-stone-600 rounded p-2 text-xs border border-orange-100 h-16 resize-none focus:outline-none"
-                            placeholder="用逗號分隔..."
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Shopping Section */}
-                  <div className="bg-white rounded-lg border border-stone-200 p-4">
-                     <div className="flex justify-between items-center mb-3">
-                        <h3 className="font-bold text-stone-700 flex items-center gap-2 text-sm uppercase tracking-wider">
-                          <ShoppingBag className="w-4 h-4 text-pink-400" /> 購物清單
-                        </h3>
-                        <button onClick={() => addShoppingItem(dIndex)} className="p-1 hover:bg-stone-100 rounded-full print:hidden">
-                            <Plus className="w-4 h-4 text-stone-400" />
-                        </button>
-                     </div>
-                     <div className="space-y-2">
-                        {day.shopping.length === 0 && <p className="text-xs text-stone-300 italic text-center py-2">無購物計畫</p>}
-                        {day.shopping.map((shop) => (
-                            <div key={shop.id} className="flex gap-2 items-center group">
-                                <input 
-                                    value={shop.shop}
-                                    onChange={(e) => updateShoppingItem(dIndex, shop.id, 'shop', e.target.value)}
-                                    placeholder="店家"
-                                    className="w-1/3 bg-stone-50 text-xs px-2 py-1 rounded border border-stone-100 focus:border-pink-300 outline-none font-bold text-stone-700"
-                                />
-                                <input 
-                                    value={shop.item}
-                                    onChange={(e) => updateShoppingItem(dIndex, shop.id, 'item', e.target.value)}
-                                    placeholder="必買商品"
-                                    className="flex-1 bg-stone-50 text-xs px-2 py-1 rounded border border-stone-100 focus:border-pink-300 outline-none text-stone-600"
-                                />
-                                <button onClick={() => deleteShoppingItem(dIndex, shop.id)} className="text-stone-300 hover:text-red-400 opacity-0 group-hover:opacity-100 print:hidden">
-                                    <X className="w-3 h-3" />
-                                </button>
-                            </div>
-                        ))}
-                     </div>
-                  </div>
-
+                <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded border border-stone-200 shadow-sm flex-1 md:flex-none">
+                  <MapPin className="w-4 h-4 text-rose-500" />
+                  {!isPreviewMode ? (
+                    <input 
+                      type="text" 
+                      value={day.accommodation}
+                      onChange={(e) => {
+                         const newDays = days.map(d => d.id === day.id ? { ...d, accommodation: e.target.value } : d);
+                         setDays(newDays);
+                      }}
+                      placeholder="當晚住宿地點"
+                      className="bg-transparent outline-none w-full md:w-40"
+                    />
+                  ) : (
+                    <span>{day.accommodation || '未設定住宿'}</span>
+                  )}
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
 
-      <style>{`
-        @media print {
-            body { 
-                background: white; 
-                font-size: 12pt;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            input, textarea {
-                border: none !important;
-                background: transparent !important;
-                padding: 0 !important;
-                resize: none !important;
-            }
-            ::placeholder { color: transparent; }
-        }
-      `}</style>
+            {/* 內容區塊 */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-stone-200">
+              
+              {/* 左側：時間軸行程 (佔 7 等份) */}
+              <div className="lg:col-span-7 p-4 md:p-6 bg-white">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
+                    <Calendar className="w-5 h-5" /> 當日行程
+                  </h2>
+                  {!isPreviewMode && (
+                    <button 
+                      onClick={() => {
+                        // 在此處需特別處理 addScheduleItem，因為 map 渲染無法直接呼叫外層 activeDay 的 function
+                        // 但因為我們現在是在 map days 裡面渲染，所以我們需要傳遞 day.id 給 handler
+                        const newItem = { id: Date.now(), time: '10:00', activity: '', link: '' };
+                        const updatedSchedule = [...day.schedule, newItem].sort((a, b) => a.time.localeCompare(b.time));
+                        const newDays = days.map(d => d.id === day.id ? { ...d, schedule: updatedSchedule } : d);
+                        setDays(newDays);
+                      }}
+                      className="text-sm bg-indigo-50 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 flex items-center gap-1"
+                    >
+                      <Plus size={14} /> 新增
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-3 relative before:absolute before:inset-0 before:ml-6 before:w-0.5 before:-translate-x-px before:bg-stone-200 before:h-full">
+                  {day.schedule.length === 0 && <p className="text-stone-400 text-sm ml-10 italic">尚無行程，請新增...</p>}
+                  
+                  {day.schedule.map((item, idx) => (
+                    <div key={item.id} className="relative flex items-start group">
+                      {/* 時間圓點 */}
+                      <div className={`absolute left-0 ml-6 -translate-x-1/2 mt-1.5 w-3 h-3 rounded-full border-2 border-white ${idx % 2 === 0 ? 'bg-pink-400' : 'bg-indigo-400'} shadow-sm z-10`}></div>
+                      
+                      <div className="ml-10 w-full flex gap-3 items-start bg-stone-50/50 p-2 rounded-lg hover:bg-stone-50 transition-colors">
+                        {/* 時間 */}
+                        <div className="w-16 flex-shrink-0">
+                          {!isPreviewMode ? (
+                            <input
+                              type="time"
+                              value={item.time}
+                              onChange={(e) => {
+                                const newSchedule = day.schedule.map(s => s.id === item.id ? { ...s, time: e.target.value } : s).sort((a, b) => a.time.localeCompare(b.time));
+                                const newDays = days.map(d => d.id === day.id ? { ...d, schedule: newSchedule } : d);
+                                setDays(newDays);
+                              }}
+                              className="font-mono font-semibold text-stone-600 bg-transparent outline-none w-full"
+                            />
+                          ) : (
+                            <span className="font-mono font-semibold text-stone-600">{item.time}</span>
+                          )}
+                        </div>
+
+                        {/* 活動內容 */}
+                        <div className="flex-grow space-y-1">
+                          {!isPreviewMode ? (
+                            <input
+                              type="text"
+                              value={item.activity}
+                              onChange={(e) => {
+                                const newSchedule = day.schedule.map(s => s.id === item.id ? { ...s, activity: e.target.value } : s);
+                                const newDays = days.map(d => d.id === day.id ? { ...d, schedule: newSchedule } : d);
+                                setDays(newDays);
+                              }}
+                              className="font-medium text-stone-800 bg-transparent border-b border-transparent focus:border-indigo-300 outline-none w-full"
+                              placeholder="行程活動..."
+                            />
+                          ) : (
+                            <div className="font-medium text-stone-800">{item.activity}</div>
+                          )}
+
+                          {/* 連結欄位 */}
+                          <div className="flex items-center gap-2">
+                            {!isPreviewMode ? (
+                              <>
+                                <ExternalLink size={12} className="text-stone-400" />
+                                <input
+                                  type="text"
+                                  value={item.link}
+                                  onChange={(e) => {
+                                    const newSchedule = day.schedule.map(s => s.id === item.id ? { ...s, link: e.target.value } : s);
+                                    const newDays = days.map(d => d.id === day.id ? { ...d, schedule: newSchedule } : d);
+                                    setDays(newDays);
+                                  }}
+                                  className="text-xs text-blue-500 bg-transparent outline-none w-full placeholder-stone-300"
+                                  placeholder="貼上相關連結 (Google Maps, 餐廳官網...)"
+                                />
+                              </>
+                            ) : item.link && (
+                              <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                                <ExternalLink size={10} /> 相關連結
+                              </a>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 刪除按鈕 */}
+                        {!isPreviewMode && (
+                          <button
+                            onClick={() => {
+                              const newSchedule = day.schedule.filter(s => s.id !== item.id);
+                              const newDays = days.map(d => d.id === day.id ? { ...d, schedule: newSchedule } : d);
+                              setDays(newDays);
+                            }}
+                            className="text-stone-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 右側：購物與美食 (佔 5 等份) */}
+              <div className="lg:col-span-5 flex flex-col divide-y divide-stone-200">
+                
+                {/* 購物地圖 */}
+                <div className="p-4 md:p-6 bg-stone-50/30">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-bold text-indigo-900 flex items-center gap-2">
+                      <Ticket className="w-4 h-4 text-emerald-600" /> 購物與逛街
+                    </h3>
+                    {!isPreviewMode && (
+                      <button 
+                        onClick={() => {
+                           const newItem = { id: Date.now(), name: '', location: '' };
+                           const newDays = days.map(d => d.id === day.id ? { ...d, shopping: [...d.shopping, newItem] } : d);
+                           setDays(newDays);
+                        }}
+                        className="text-xs bg-emerald-50 text-emerald-600 px-2 py-1 rounded hover:bg-emerald-100"
+                      >
+                        + 新增
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    {day.shopping.length === 0 && <p className="text-stone-400 text-xs italic">尚無購物清單</p>}
+                    {day.shopping.map(shop => (
+                      <div key={shop.id} className="bg-white p-2 rounded shadow-sm border border-stone-100 flex gap-2 items-center group">
+                         <div className="flex-grow grid grid-cols-2 gap-2">
+                            {!isPreviewMode ? (
+                              <>
+                                <input 
+                                  className="text-sm font-medium outline-none text-stone-800 placeholder-stone-300" 
+                                  placeholder="店家名稱"
+                                  value={shop.name}
+                                  onChange={(e) => {
+                                    const newShopping = day.shopping.map(s => s.id === shop.id ? { ...s, name: e.target.value } : s);
+                                    const newDays = days.map(d => d.id === day.id ? { ...d, shopping: newShopping } : d);
+                                    setDays(newDays);
+                                  }}
+                                />
+                                <input 
+                                  className="text-xs text-stone-500 outline-none placeholder-stone-300" 
+                                  placeholder="地點/備註"
+                                  value={shop.location}
+                                  onChange={(e) => {
+                                    const newShopping = day.shopping.map(s => s.id === shop.id ? { ...s, location: e.target.value } : s);
+                                    const newDays = days.map(d => d.id === day.id ? { ...d, shopping: newShopping } : d);
+                                    setDays(newDays);
+                                  }}
+                                />
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-sm font-medium text-stone-800">{shop.name}</span>
+                                <span className="text-xs text-stone-500">{shop.location}</span>
+                              </>
+                            )}
+                         </div>
+                         {!isPreviewMode && (
+                            <button 
+                              onClick={() => {
+                                const newShopping = day.shopping.filter(s => s.id !== shop.id);
+                                const newDays = days.map(d => d.id === day.id ? { ...d, shopping: newShopping } : d);
+                                setDays(newDays);
+                              }}
+                              className="text-stone-300 hover:text-red-400"
+                            ><Trash2 size={14} /></button>
+                         )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 美食清單 */}
+                <div className="p-4 md:p-6 bg-white flex-grow">
+                  <h3 className="font-bold text-indigo-900 flex items-center gap-2 mb-3">
+                    <Utensils className="w-4 h-4 text-orange-500" /> 美食筆記
+                  </h3>
+                  
+                  {/* 三餐規劃 */}
+                  <div className="grid grid-cols-1 gap-2 mb-4">
+                    {['breakfast', 'lunch', 'dinner'].map((meal) => (
+                       <div key={meal} className="flex items-center text-sm border-b border-stone-100 py-1">
+                          <span className="w-12 text-stone-500 font-medium">
+                            {meal === 'breakfast' ? '早餐' : meal === 'lunch' ? '午餐' : '晚餐'}
+                          </span>
+                          {!isPreviewMode ? (
+                            <input 
+                              type="text"
+                              value={day.food[meal]}
+                              onChange={(e) => {
+                                const newDays = days.map(d => d.id === day.id ? { ...d, food: { ...d.food, [meal]: e.target.value } } : d);
+                                setDays(newDays);
+                              }}
+                              className="flex-grow outline-none text-stone-700 placeholder-stone-300"
+                              placeholder="規劃餐廳..."
+                            />
+                          ) : (
+                            <span className="flex-grow text-stone-700">{day.food[meal]}</span>
+                          )}
+                       </div>
+                    ))}
+                  </div>
+
+                  {/* 想吃清單 */}
+                  <div className="mt-4">
+                     <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Wishlist</span>
+                        {!isPreviewMode && (
+                          <button 
+                            onClick={() => {
+                              const newItem = { id: Date.now(), name: '', checked: false };
+                              const newWishlist = [...day.food.wishlist, newItem];
+                              const newDays = days.map(d => d.id === day.id ? { ...d, food: { ...d.food, wishlist: newWishlist } } : d);
+                              setDays(newDays);
+                            }}
+                            className="text-xs text-indigo-500 hover:text-indigo-700"
+                          >+ 新增</button>
+                        )}
+                     </div>
+                     <div className="space-y-1">
+                        {day.food.wishlist.map(item => (
+                           <div key={item.id} className="flex items-center gap-2 text-sm group">
+                              <input 
+                                type="checkbox" 
+                                checked={item.checked}
+                                onChange={(e) => {
+                                  const newWishlist = day.food.wishlist.map(w => w.id === item.id ? { ...w, checked: e.target.checked } : w);
+                                  const newDays = days.map(d => d.id === day.id ? { ...d, food: { ...d.food, wishlist: newWishlist } } : d);
+                                  setDays(newDays);
+                                }}
+                                className="rounded text-pink-500 focus:ring-pink-500"
+                              />
+                              {!isPreviewMode ? (
+                                <input 
+                                  value={item.name}
+                                  onChange={(e) => {
+                                    const newWishlist = day.food.wishlist.map(w => w.id === item.id ? { ...w, name: e.target.value } : w);
+                                    const newDays = days.map(d => d.id === day.id ? { ...d, food: { ...d.food, wishlist: newWishlist } } : d);
+                                    setDays(newDays);
+                                  }}
+                                  className={`flex-grow outline-none bg-transparent ${item.checked ? 'line-through text-stone-400' : 'text-stone-700'}`}
+                                  placeholder="想吃的小吃..."
+                                />
+                              ) : (
+                                <span className={`flex-grow ${item.checked ? 'line-through text-stone-400' : 'text-stone-700'}`}>{item.name}</span>
+                              )}
+                              {!isPreviewMode && (
+                                <button 
+                                  onClick={() => {
+                                    const newWishlist = day.food.wishlist.filter(w => w.id !== item.id);
+                                    const newDays = days.map(d => d.id === day.id ? { ...d, food: { ...d.food, wishlist: newWishlist } } : d);
+                                    setDays(newDays);
+                                  }}
+                                  className="text-stone-300 hover:text-red-400 opacity-0 group-hover:opacity-100"
+                                ><Trash2 size={12} /></button>
+                              )}
+                           </div>
+                        ))}
+                     </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* 底部備註區 */}
+            <div className="bg-yellow-50/50 p-4 border-t border-stone-200">
+               <div className="flex items-start gap-2">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 mt-1" />
+                  <div className="w-full">
+                     <h4 className="text-sm font-bold text-yellow-700 mb-1">今日備註 & 提醒</h4>
+                     {!isPreviewMode ? (
+                        <textarea 
+                          className="w-full bg-transparent outline-none text-sm text-stone-700 min-h-[60px] resize-none placeholder-yellow-700/30"
+                          placeholder="例如：要提早買票、記得帶行動電源、晚上有祭典..."
+                          value={day.notes}
+                          onChange={(e) => {
+                            const newDays = days.map(d => d.id === day.id ? { ...d, notes: e.target.value } : d);
+                            setDays(newDays);
+                          }}
+                        />
+                     ) : (
+                        <p className="text-sm text-stone-700 whitespace-pre-wrap">{day.notes}</p>
+                     )}
+                  </div>
+               </div>
+            </div>
+          </div>
+        ))}
+      </main>
+
+      {/* 頁尾 */}
+      {!isPreviewMode && (
+         <footer className="text-center p-6 text-stone-400 text-sm">
+            Kyoto Trip Planner &copy; 2024 - Built with React
+         </footer>
+      )}
     </div>
   );
-};
-
-export default App;
+}
